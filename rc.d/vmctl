@@ -1,6 +1,6 @@
 #!/bin/sh 
 #
-# $FreeBSD: $
+# $FreeBSD$
 #
 # REQUIRE: NETWORKING SERVERS dmesg
 # PROVIDE: vmctl
