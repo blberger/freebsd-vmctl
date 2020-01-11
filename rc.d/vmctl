@@ -1,0 +1,29 @@
+#!/bin/sh 
+#
+# $FreeBSD: $
+#
+# REQUIRE: NETWORKING SERVERS dmesg
+# PROVIDE: vmctl
+# KEYWORD: shutdown nojail
+#
+
+. /etc/rc.subr
+
+
+name=vmctl
+desc="starts vm's with vmctl on boot/shutdown"
+rcvar=vmctl_enable
+
+load_rc_config ${name}
+
+export SCREENDIR=/root/.screens
+
+command="/root/bin/vmctl"
+start_cmd="${command}  all start"
+stop_cmd="${command}  all stop"
+
+
+run_rc_command "$1"
+
+
+

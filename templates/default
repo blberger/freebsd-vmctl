@@ -1,0 +1,27 @@
+loader="bhyveload"
+
+stdio="screen"			# stdio, nmdm..,screen
+
+iso=".iso/FreeBSD-12.1-RELEASE-amd64-bootonly.iso"		# install disk
+
+
+ram="2G"
+cpu="2"
+
+
+## Slot configuration see: man bhyve
+## slot 0,1,31 are reserved
+## you can use slot 2-30
+## boot is not part of the bhyve configuration 
+## but an addition separated from me with ; and marks disk as boot disk
+
+ 
+slot[2]="virtio-blk,<disk_name>;boot"	# bootdisk
+slot[3]="virtio-blk,<disk_name>"	# not a bootdisk	 	
+
+## <bridge_name> is not part of the bhyve configuration
+## but an addition separated from me with ; 
+slot[10]="virtio-net,tap98;<bridge_name>"
+slot[11]="virtio-net,tap99;<bridge_name>"
+
+

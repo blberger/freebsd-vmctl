@@ -1,0 +1,221 @@
+#!/usr/local/bin/bash -x   
+##
+## $FREEBSD$
+##
+## 
+## don't change anything here unless you know what you're doing.
+##
+
+
+. /etc/rc.conf
+
+vm_name="$1"
+command="$2"
+subcommand="$3"
+template="$4"
+disk_name="$4"
+disk_size="$5"
+
+
+if test "${vm_name}" == "all"; then  subcommand="all"; fi
+
+
+
+_start_all(){
+
+	for vm_name in ${vmctl_list}
+	do 
+
+                sh /root/bin/vmctl ${vm_name} start
+
+		sleep ${vmctl_delay}
+
+	done
+}
+
+
+_stop_all(){
+
+	echo "please wait shutdown all  VM's in progress ..."
+
+
+	for  pid in $(pgrep -f "bhyve: ")
+        do 
+		vm_name=$( ps $pid | grep bhyve | cut -f 6 -w)
+  
+		if test ${vm_name} 
+		then
+
+			_stop_
+
+		fi
+			
+        done
+
+
+	echo "all vm's was stopped"
+
+}
+
+
+_check_(){
+
+	pid=$(pgrep -f "bhyve: ${vm_name}") 
+
+	if test  $pid  
+	then
+		echo "a vm ${vm_name}  already running"
+		exit 1
+	fi
+
+	_destroy_
+
+}
+
+
+_create_disk(){
+
+	if test ! -e ${vmctl_dir}/${vm_name}
+	then
+		 echo -e "configuration does not exist\nused: \"vmctl ${vm_name} create config <tempalte>\" befor"
+		 exit 1
+	fi
+
+
+
+	if test ! -e ${vmctl_dir}/${vm_name}/${disk_name}
+	then 
+		truncate -s ${disk_size} ${vmctl_dir}/${vm_name}/${disk_name} 
+	else
+		echo "disk already exists"
+	fi
+
+}
+
+
+
+_create_config(){
+
+	if test ! -d ${vmctl_dir}/${vm_name}
+	then
+
+		mkdir ${vmctl_dir}/${vm_name}
+
+	fi
+
+	cp ${vmctl_dir}/.templates/${template:=default} ${vmctl_dir}/${vm_name}/config
+
+	echo "you can now customize the configuration"
+
+}
+
+
+_install_(){
+
+	_check_
+
+	. ${vmctl_dir}/${vm_name}/config
+	. ${vmctl_dir}/.config/vmctl.conf
+
+
+
+	tmp="${vmctl_dir}/${vm_name}/install"
+	
+	 echo "#!/bin/sh
+	cd ${vmctl_dir}/${vm_name}
+	${loader_install}
+	${bhyve_install}
+	" > $tmp
+	
+	chmod +x $tmp
+
+	$tmp
+
+	_destroy_
+}
+
+
+_start_(){
+
+	_check_
+
+	. ${vmctl_dir}/${vm_name}/config
+	. ${vmctl_dir}/.config/vmctl.conf
+
+
+        tmp="${vmctl_dir}/${vm_name}/start"	
+
+	echo "#!/bin/sh
+	cd ${vmctl_dir}/${vm_name}
+	loop=0
+	while test \$loop -eq 0
+	do
+		${loader_start}
+		${bhyve_start}
+		loop=\$?
+	done
+	" > $tmp
+
+	chmod +x $tmp
+
+	${screen} $tmp
+
+	_destroy_	
+}
+
+
+
+_stop_(){
+
+        if test  $(pgrep -f "bhyve: ${vm_name}")
+        then
+
+                echo "please wait shutdown in progress ..."
+
+                kill -15 $(pgrep -f "bhyve: ${vm_name}")
+
+                while test $(pgrep -f "bhyve: ${vm_name}")
+                do
+                        sleep 1
+
+                done
+                
+                echo "vm ${vm_name} was stopped"
+
+        else
+
+                echo "vm ${vm_name} is not running"
+        fi
+
+        _destroy_
+
+}
+
+
+
+_destroy_(){
+
+        if test -c /dev/vmm/${vm_name}
+        then
+                bhyvectl --destroy --vm ${vm_name}
+        fi
+
+}
+
+
+
+__(){
+
+	echo "
+	vmctl <vm_name> create config <template>
+	vmctl <vm_name> create disk <name> <size>
+	vmctl <vm_name> install
+	vmctl <vm_name> start
+	vmctl <vm_name> stop
+	"
+
+}
+
+
+_${command}_${subcommand}
+
