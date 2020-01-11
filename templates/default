@@ -1,4 +1,4 @@
-loader="bhyveload"
+loader="bhyveload"		# bhyveload, grub-bhyve, uefi-edk2-bhyve
 
 stdio="screen"			# stdio, nmdm..,screen
 

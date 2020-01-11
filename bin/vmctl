@@ -1,10 +1,21 @@
-#!/usr/local/bin/bash   
+#!/usr/local/bin/bash -x   
 ##
 ## $FREEBSD$
 ##
 ## 
 ## don't change anything here unless you know what you're doing.
 ##
+##
+## you need:
+##	/usr/ports/shells/bash
+##	/usr/ports/sysutils/screen
+##	/usr/ports/sysutils/screenie
+##	/usr/ports/sysutils/grub2-bhyve
+##	/usr/ports/sysutils/uefi-edk2-bhyve
+##
+##
+##
+
 
 
 . /etc/rc.conf
@@ -15,6 +26,9 @@ subcommand="$3"
 template="$4"
 disk_name="$4"
 disk_size="$5"
+
+
+cd ${vmctl_dir}
 
 
 if test "${vm_name}" == "all"; then  subcommand="all"; fi
@@ -75,7 +89,7 @@ _check_(){
 
 _create_disk(){
 
-	if test ! -e ${vmctl_dir}/${vm_name}
+	if test ! -e ${vm_name}
 	then
 		 echo -e "configuration does not exist\nused: \"vmctl ${vm_name} create config <tempalte>\" befor"
 		 exit 1
@@ -83,9 +97,9 @@ _create_disk(){
 
 
 
-	if test ! -e ${vmctl_dir}/${vm_name}/${disk_name}
+	if test ! -e ${vm_name}/${disk_name}
 	then 
-		truncate -s ${disk_size} ${vmctl_dir}/${vm_name}/${disk_name} 
+		truncate -s ${disk_size} ${vm_name}/${disk_name} 
 	else
 		echo "disk already exists"
 	fi
@@ -96,14 +110,14 @@ _create_disk(){
 
 _create_config(){
 
-	if test ! -d ${vmctl_dir}/${vm_name}
+	if test ! -d ${vm_name}
 	then
 
-		mkdir ${vmctl_dir}/${vm_name}
+		mkdir ${vm_name}
 
 	fi
 
-	cp ${vmctl_dir}/.templates/${template:=default} ${vmctl_dir}/${vm_name}/config
+	cp .templates/${template:=default} ${vm_name}/config
 
 	echo "you can now customize the configuration"
 
@@ -114,14 +128,13 @@ _install_(){
 
 	_check_
 
-	. ${vmctl_dir}/${vm_name}/config
-	. ${vmctl_dir}/.config/vmctl.conf
+	. ${vm_name}/config
+	. .config/vmctl.conf
 
 
-
-	tmp="${vmctl_dir}/${vm_name}/install"
+	tmp="${vm_name}/install"
 	
-	 echo "#!/bin/sh
+	echo "#!/bin/sh
 	cd ${vmctl_dir}/${vm_name}
 	${loader_install}
 	${bhyve_install}
@@ -139,11 +152,11 @@ _start_(){
 
 	_check_
 
-	. ${vmctl_dir}/${vm_name}/config
-	. ${vmctl_dir}/.config/vmctl.conf
+	. ${vm_name}/config
+	. .config/vmctl.conf
 
 
-        tmp="${vmctl_dir}/${vm_name}/start"	
+        tmp="${vm_name}/start"	
 
 	echo "#!/bin/sh
 	cd ${vmctl_dir}/${vm_name}
@@ -212,6 +225,7 @@ __(){
 	vmctl <vm_name> install
 	vmctl <vm_name> start
 	vmctl <vm_name> stop
+	vmctl <vm_name> destroy	
 	"
 
 }
